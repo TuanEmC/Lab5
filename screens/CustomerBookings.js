@@ -1,40 +1,47 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, FlatList } from 'react-native';
 import { Surface, Text, Title, Paragraph, Chip } from 'react-native-paper';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
+import { useMyContextController } from '../store';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-const Transaction = () => {
-  const [transactions, setTransactions] = useState([]);
+const CustomerBookings = () => {
+  const [bookings, setBookings] = useState([]);
+  const [controller] = useMyContextController();
+  const { userLogin } = controller;
 
   useEffect(() => {
+    if (!userLogin?.email) return;
+
     const q = query(
-      collection(db, "TRANSACTIONS"),
-      orderBy("createdAt", "desc")
+      collection(db, "BOOKINGS"),
+      where("customerId", "==", userLogin.email),
+      orderBy("bookingDateTime", "desc")
     );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const transactionsData = [];
+      const bookingsData = [];
       querySnapshot.forEach((doc) => {
-        transactionsData.push({
+        bookingsData.push({
           id: doc.id,
           ...doc.data(),
+          bookingDateTime: doc.data().bookingDateTime.toDate(),
           createdAt: doc.data().createdAt.toDate(),
         });
       });
-      setTransactions(transactionsData);
+      setBookings(bookingsData);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [userLogin]);
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'completed':
-        return '#4caf50';
       case 'pending':
         return '#ff9800';
+      case 'confirmed':
+        return '#4caf50';
       case 'cancelled':
         return '#f44336';
       default:
@@ -44,10 +51,10 @@ const Transaction = () => {
 
   const getStatusText = (status) => {
     switch (status) {
-      case 'completed':
-        return 'Đã thanh toán';
       case 'pending':
-        return 'Chờ thanh toán';
+        return 'Chờ xác nhận';
+      case 'confirmed':
+        return 'Đã xác nhận';
       case 'cancelled':
         return 'Đã hủy';
       default:
@@ -55,42 +62,44 @@ const Transaction = () => {
     }
   };
 
-  const renderTransaction = ({ item }) => (
-    <Surface style={styles.transactionCard}>
+  const renderBooking = ({ item }) => (
+    <Surface style={styles.bookingCard}>
       <View style={styles.header}>
-        <MaterialCommunityIcons name="cash-register" size={24} color="#ff6b81" />
+        <MaterialCommunityIcons name="spa" size={24} color="#ff6b81" />
         <Title style={styles.serviceName}>{item.serviceName}</Title>
       </View>
 
       <View style={styles.infoContainer}>
         <View style={styles.infoRow}>
-          <MaterialCommunityIcons name="account" size={20} color="#666" />
+          <MaterialCommunityIcons name="calendar" size={20} color="#666" />
           <Text style={styles.infoText}>
-            {item.customerName}
-          </Text>
-        </View>
-
-        <View style={styles.infoRow}>
-          <MaterialCommunityIcons name="email" size={20} color="#666" />
-          <Text style={styles.infoText}>
-            {item.customerId}
-          </Text>
-        </View>
-
-        <View style={styles.infoRow}>
-          <MaterialCommunityIcons name="cash" size={20} color="#666" />
-          <Text style={styles.infoText}>
-            {item.amount?.toLocaleString()} đ
+            {item.bookingDateTime.toLocaleDateString('vi-VN')}
           </Text>
         </View>
 
         <View style={styles.infoRow}>
           <MaterialCommunityIcons name="clock" size={20} color="#666" />
           <Text style={styles.infoText}>
-            {item.createdAt.toLocaleString('vi-VN')}
+            {item.bookingDateTime.toLocaleTimeString('vi-VN', { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            })}
+          </Text>
+        </View>
+
+        <View style={styles.infoRow}>
+          <MaterialCommunityIcons name="cash" size={20} color="#666" />
+          <Text style={styles.infoText}>
+            {item.servicePrice?.toLocaleString()} đ
           </Text>
         </View>
       </View>
+
+      {item.note && (
+        <Paragraph style={styles.note}>
+          Ghi chú: {item.note}
+        </Paragraph>
+      )}
 
       <Chip 
         style={[styles.statusChip, { backgroundColor: getStatusColor(item.status) }]}
@@ -103,10 +112,10 @@ const Transaction = () => {
 
   return (
     <View style={styles.container}>
-      <Title style={styles.title}>Lịch sử giao dịch</Title>
+      <Title style={styles.title}>Lịch hẹn của bạn</Title>
       <FlatList
-        data={transactions}
-        renderItem={renderTransaction}
+        data={bookings}
+        renderItem={renderBooking}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
@@ -126,7 +135,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginVertical: 16,
   },
-  transactionCard: {
+  bookingCard: {
     padding: 16,
     marginBottom: 16,
     borderRadius: 12,
@@ -155,6 +164,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
+  note: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
+    marginBottom: 12,
+  },
   statusChip: {
     alignSelf: 'flex-start',
   },
@@ -163,4 +178,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Transaction;
+export default CustomerBookings; 

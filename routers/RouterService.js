@@ -3,12 +3,12 @@ import Services from "../screens/Services";
 import AddNewService from "../screens/AddNewService";
 import ServiceDetail from "../screens/ServiceDetail";
 import { useMyContextController } from "../store";
-import { IconButton } from "react-native-paper";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const Stack = createStackNavigator();
 
 const RouterService = () => {
-  const [controller, dispatch] = useMyContextController();
+  const [controller] = useMyContextController();
   const { userLogin } = controller;
 
   return (
@@ -19,13 +19,37 @@ const RouterService = () => {
         headerStyle: {
           backgroundColor: "pink",
         },
-        
-        headerRight: (props) => <IconButton icon={"account"}/>
+        headerRight: () => (
+          <MaterialCommunityIcons 
+            name="account"
+            size={24}
+            style={{ marginRight: 16 }}
+            onPress={() => {}}
+          />
+        )
       }}
     >
-      <Stack.Screen name="Services" component={Services} />
-      <Stack.Screen name="AddNewService" component={AddNewService} />
-      <Stack.Screen name="ServiceDetail" component={ServiceDetail} />
+      <Stack.Screen 
+        name="Services" 
+        component={Services}
+        options={{
+          title: "Danh sách dịch vụ"
+        }}
+      />
+      <Stack.Screen 
+        name="AddNewService" 
+        component={AddNewService}
+        options={{
+          title: "Thêm dịch vụ mới"
+        }}
+      />
+      <Stack.Screen 
+        name="ServiceDetail" 
+        component={ServiceDetail}
+        options={{
+          title: "Chi tiết dịch vụ"
+        }}
+      />
     </Stack.Navigator>
   );
 };

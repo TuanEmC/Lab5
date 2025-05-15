@@ -1,11 +1,12 @@
 import { createContext, useContext, useMemo, useReducer } from "react";
-import auth from "@react-native-firebase/auth";
-import firestore from "@react-native-firebase/firestore";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { doc, onSnapshot } from "firebase/firestore";
 import { Alert } from "react-native";
+import { auth, db } from "../firebase";
 
 // Tạo Context
 const MyContext = createContext();
-MyContext.displayName = "vbdvabv";
+MyContext.displayName = "MyContext";
 
 // Định nghĩa reducer
 const reducer = (state, action) => {
@@ -27,7 +28,6 @@ const MyContextControllerProvider = ({ children }) => {
   };
 
   const [controller, dispatch] = useReducer(reducer, initialState);
-
   const value = useMemo(() => [controller, dispatch], [controller, dispatch]);
 
   return (
@@ -46,33 +46,52 @@ const useMyContextController = () => {
   return context;
 };
 
-// Khai báo collection
-const USERS = firestore().collection("USERS");
-
 // Hàm login
-const login = (dispatch, email, password) => {
-  auth()
-    .signInWithEmailAndPassword(email, password)
-    .then(response => {
-      USERS.doc(email).onSnapshot(snapshot => {
-        if (snapshot.exists) {
-          dispatch({ type: "USER_LOGIN", value: snapshot.data() });
-        } else {
-          Alert.alert("Tài khoản không tồn tại trong Firestore.");
+const login = async (dispatch, email, password) => {
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const userRef = doc(db, "USERS", email);
+    
+    return new Promise((resolve, reject) => {
+      const unsubscribe = onSnapshot(userRef, 
+        (snapshot) => {
+          if (snapshot.exists()) {
+            const userData = snapshot.data();
+            dispatch({ type: "USER_LOGIN", value: userData });
+            resolve(unsubscribe);
+          } else {
+            reject(new Error("Tài khoản không tồn tại trong Firestore."));
+            unsubscribe();
+          }
+        },
+        (error) => {
+          console.error("Lỗi khi lắng nghe thay đổi:", error);
+          reject(error);
+          unsubscribe();
         }
-      });
-    })
-    .catch(e => Alert.alert("Sai email hoặc password"));
+      );
+    });
+  } catch (error) {
+    console.error("Lỗi đăng nhập:", error);
+    if (error.code === 'auth/invalid-credential') {
+      Alert.alert("Lỗi đăng nhập", "Email hoặc mật khẩu không đúng");
+    } else if (error.code === 'auth/network-request-failed') {
+      Alert.alert("Lỗi kết nối", "Vui lòng kiểm tra kết nối internet của bạn");
+    } else {
+      Alert.alert("Lỗi đăng nhập", error.message);
+    }
+    throw error;
+  }
 };
 
 // Hàm logout
-const logout = (dispatch) => {
-  auth()
-    .signOut()
-    .then(() => dispatch({ type: "LOGOUT" }))
-    .catch(e => Alert.alert("Đăng xuất thất bại", e.message));
-};
+const logout = async (dispatch) => {
 
+  auth().signOut()
+  .then(() => 
+    dispatch({ type: "LOGOUT" }))
+  }
+  
 // Export các thành phần
 export {
   MyContextControllerProvider,

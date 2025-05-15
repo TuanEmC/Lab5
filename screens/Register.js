@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { Alert, View } from "react-native";
 import { Button, HelperText, Text, TextInput } from "react-native-paper";
-import firestore from "@react-native-firebase/firestore";
-import auth from "@react-native-firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
+import { auth, db } from "../firebase";
 
 const Register = ({ navigation }) => {
   const [fullName, setFullName] = useState("");
@@ -19,29 +20,28 @@ const Register = ({ navigation }) => {
   const hasErrorPassword = () => password.length < 6;
   const hasErrorPasswordConfirm = () => passwordConfirm !== password;
 
-  const USERS = firestore().collection("USERS");
-
-  const handleCreateAccount = () => {
+  const handleCreateAccount = async () => {
     if (hasErrorFullName() || hasErrorEmail() || hasErrorPassword() || hasErrorPasswordConfirm()) {
       Alert.alert("Thông tin không hợp lệ", "Vui lòng kiểm tra lại các trường dữ liệu.");
       return;
     }
 
-    auth()
-      .createUserWithEmailAndPassword(email, password)
-      .then(() => {
-        USERS.doc(email).set({
-          fullName,
-          email,
-          password,
-          phone,
-          address,
-          role: "customer",
-        });
-        Alert.alert("Đăng ký thành công", "Bạn có thể đăng nhập ngay.");
-        navigation.navigate("Login");
-      })
-      .catch((e) => Alert.alert("Lỗi đăng ký", "Tài khoản đã tồn tại hoặc không hợp lệ."));
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      const userRef = doc(db, "USERS", email);
+      await setDoc(userRef, {
+        fullName,
+        email,
+        password,
+        phone,
+        address,
+        role: "customer",
+      });
+      Alert.alert("Đăng ký thành công", "Bạn có thể đăng nhập ngay.");
+      navigation.navigate("Login");
+    } catch (error) {
+      Alert.alert("Lỗi đăng ký", "Tài khoản đã tồn tại hoặc không hợp lệ.");
+    }
   };
 
   return (

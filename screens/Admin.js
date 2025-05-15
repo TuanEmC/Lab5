@@ -1,48 +1,102 @@
 import React from "react";
+import { Image } from 'react-native';
 import { createMaterialBottomTabNavigator } from "@react-navigation/material-bottom-tabs";
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { createStackNavigator } from "@react-navigation/stack";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MD3LightTheme, adaptNavigationTheme } from 'react-native-paper';
+import { DefaultTheme } from '@react-navigation/native';
+import { useMyContextController } from '../store';
 
 import RouterService from "../routers/RouterService";
 import Transaction from "./Transaction";
-import Customer from "./Customer";
-import Setting from "./Setting";
 import Customers from "./Customers";
+import Setting from "./Setting";
 
 const Tab = createMaterialBottomTabNavigator();
+const Stack = createStackNavigator();
+
+const ServicesStack = () => {
+  const [controller] = useMyContextController();
+  const { userLogin } = controller;
+
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: '#694fad',
+        },
+        headerTintColor: '#fff',
+        headerTitleAlign: 'center',
+        headerLeft: () => (
+          <Image
+            source={require('../assets/logo.png')}
+            style={{ width: 40, height: 40, marginLeft: 10 }}
+            resizeMode="contain"
+          />
+        ),
+        headerRight: () => (
+          <MaterialCommunityIcons
+            name="account"
+            size={24}
+            color="#fff"
+            style={{ marginRight: 15 }}
+          />
+        ),
+      }}
+    >
+      <Stack.Screen 
+        name="ServicesList" 
+        component={RouterService}
+        options={{ 
+          title: `Admin: ${userLogin?.fullName || 'Admin'}`,
+        }}
+      />
+    </Stack.Navigator>
+  );
+};
 
 const Admin = () => {
+  const { LightTheme } = adaptNavigationTheme({
+    reactNavigationLight: DefaultTheme,
+    materialLight: MD3LightTheme,
+  });
+
   return (
-    <Tab.Navigator initialRouteName="RouterService">
+    <Tab.Navigator 
+      initialRouteName="Services"
+      theme={LightTheme}
+      barStyle={{ backgroundColor: '#694fad' }}
+    >
       <Tab.Screen
-        name="RouterService"
-        component={RouterService}
+        name="Services"
+        component={ServicesStack}
         options={{
-          tabBarLabel: "Home",
-          tabBarIcon: ({ color }) => <Icon name="home" color={color} size={24} />,
+          tabBarLabel: "Dịch vụ",
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="home" color={color} size={24} />,
         }}
       />
       <Tab.Screen
         name="Transaction"
         component={Transaction}
         options={{
-          tabBarLabel: "Transaction",
-          tabBarIcon: ({ color }) => <Icon name="cash" color={color} size={24} />,
+          tabBarLabel: "Giao dịch",
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="cash" color={color} size={24} />,
         }}
       />
       <Tab.Screen
         name="Customers"
         component={Customers}
         options={{
-          tabBarLabel: "Customers",
-          tabBarIcon: ({ color }) => <Icon name="account" color={color} size={24} />,
+          tabBarLabel: "Khách hàng",
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="account" color={color} size={24} />,
         }}
       />
       <Tab.Screen
         name="Setting"
         component={Setting}
         options={{
-          tabBarLabel: "Setting",
-          tabBarIcon: ({ color }) => <Icon name="cog" color={color} size={24} />,
+          tabBarLabel: "Cài đặt",
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="cog" color={color} size={24} />,
         }}
       />
     </Tab.Navigator>
